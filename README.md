@@ -22,6 +22,12 @@ doing a solo podcast.
 You'll need a [Ruby interpretor](https://www.ruby-lang.org/en/) and
 [FFmpeg](http://ffmpeg.org/about.html).
 
+## _Caveat utilitor_
+
+I've had good luck editing my podcast tests with this script so far,
+but be sure to listen to the results before publishing. This script
+could never replace a competent audio editor.
+
 ## What's going on under the hood?
 
 Glad you asked. The script builds and FFmpeg command to run on the
@@ -63,8 +69,9 @@ talk. So don't be afraid of dead air; we're fixing it in post.
 Then we cross fade in the intro and out the outro if they are provided:
 
     [intro][body] acrossfade=d=4 [start];
+    [start][outro] acrossfade=d=10:curve1=log:curve2=exp [all];
 
-The parameters are set after quite a bit of fiddling and they might be
+I set the parameters after quite a bit of fiddling and they might be
 specific to the particular bumpers I'm using. Probably I ought to let
 users specify this on the command line. But it might be that there's a
 better set of defaults. This is a bit of a work in progress.
