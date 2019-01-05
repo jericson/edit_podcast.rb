@@ -77,7 +77,8 @@ input_cnt=ARGV.length
 
 if options[:intro]
   command += "
-   [#{input_cnt}] silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB [intro];
+   [#{input_cnt}] silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB [intro_trimmed];
+    [intro_trimmed] loudnorm=i=#{options[:loudness]}:lra=#{options[:lra]}:tp=#{options[:tp]} [intro];
    [intro][body] acrossfade=d=4 [start];"
   input_cnt += 1 
 else
@@ -87,7 +88,8 @@ end
 
 if options[:outro]
   command += "
-   [#{input_cnt}] silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB [outro];
+   [#{input_cnt}] silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB [outro_trimmed];
+    [outro_trimmed] loudnorm=i=#{options[:loudness]}:lra=#{options[:lra]}:tp=#{options[:tp]} [outro];
    [start][outro] acrossfade=d=10:curve1=log:curve2=exp [all];"
   input_cnt += 1
 else

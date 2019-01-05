@@ -30,7 +30,7 @@ could never replace a competent audio editor.
 
 ## What's going on under the hood?
 
-Glad you asked. The script builds and FFmpeg command to run on the
+Glad you asked. The script builds an FFmpeg command to run on the
 command line. If you want to see the command, leave off the `-e` or
 `--exec` option. The audio filters are documented in the
 [FFmpeg Filters Documentation](http://ffmpeg.org/ffmpeg-filters.html).
@@ -87,10 +87,10 @@ available since I don't have any skill in this. Anyway, the defaults
 seem pretty good.
 
 Finally I run the loudness normalizer again on the entire stream. I
-don't exactly know if it was overkill to run it on the individual
-channels earlier. I should probably run a blind test to see what makes
-a difference as this is easily the most time-consuming bit of the
-process.
+don't exactly know if it was overkill to run it again since I've
+already run it on on each individual channel earlier. I should
+probably run a blind test to see what makes a difference as this is
+easily the most time-consuming bit of the process.
 
 I pass a few more parameter to FFmpeg:
 
