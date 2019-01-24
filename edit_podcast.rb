@@ -7,7 +7,9 @@ options = {
   :loudness => -19,
   :lra => 6,
   :tp => -1.5,
-  :exec => false
+  :exec => false,
+  :per_track => false,
+  :compressor => false,
 }
 
 optparse = OptionParser.new do |opts|
@@ -21,8 +23,28 @@ optparse = OptionParser.new do |opts|
     options[:outro] = s
   end
 
+  opts.on( '', '--loudness DECIBELS', 'Normalized loudness (defauts to -19 dB)') do |n|
+    options[:loudness] = n
+  end
+
+  opts.on( '', '--lra DECIBELS', 'Loudness range (defauts to 6 dB)') do |n|
+    options[:lra] = n
+  end
+
+  opts.on( '', '--tp DECIBELS', 'True peak (defauts to -1.5 dB)') do |n|
+    options[:tp] = n
+  end
+
   opts.on( '-e', '--exec', 'Execute ffmpeg command') do
     options[:exec] = true
+  end
+  
+  opts.on( '-p', '--per-track-loudness', 'Adjust loudness for each track') do
+    options[:per_track] = true
+  end
+
+  opts.on( '-c', '--compressor', 'Adjust loudness for each track') do
+    options[:compressor] = true
   end
   
   opts.on( '-h', '--help', 'Display this screen' ) do
@@ -57,10 +79,18 @@ command += ' -filter_complex \
 "'
 
 ARGV.each_index do | i |
-  command += "
-   [#{i}] loudnorm=i=#{options[:loudness]}:lra=#{options[:lra]}:tp=#{options[:tp]} [input_#{i}];"
+  if options[:per_track]
+    command += "
+   [#{i}] adeclick [declicked_#{i}];
+   [declicked_#{i}] loudnorm=i=#{options[:loudness]}:lra=#{options[:lra]}:tp=#{options[:tp]} [input_#{i}];"
+
+  else
+    command += "
+   [#{i}] adeclick [input_#{i}];"
+  end
 end
 
+# 'Cause I love a neatly indented FFmpeg command
 command += "
    "
 
@@ -78,9 +108,10 @@ input_cnt=ARGV.length
 if options[:intro]
   command += "
    [#{input_cnt}] silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB [intro_trimmed];
-    [intro_trimmed] loudnorm=i=#{options[:loudness]}:lra=#{options[:lra]}:tp=#{options[:tp]} [intro];
+   [intro_trimmed] loudnorm=i=#{options[:loudness]}:lra=#{options[:lra]}:tp=#{options[:tp]} [intro];
    [intro][body] acrossfade=d=4 [start];"
-  input_cnt += 1 
+
+  input_cnt += 1     
 else
   command += "
    [body] acopy [start];"
@@ -89,7 +120,7 @@ end
 if options[:outro]
   command += "
    [#{input_cnt}] silenceremove=stop_periods=-1:stop_duration=1:stop_threshold=-50dB [outro_trimmed];
-    [outro_trimmed] loudnorm=i=#{options[:loudness]}:lra=#{options[:lra]}:tp=#{options[:tp]} [outro];
+   [outro_trimmed] loudnorm=i=#{options[:loudness]}:lra=#{options[:lra]}:tp=#{options[:tp]} [outro];
    [start][outro] acrossfade=d=10:curve1=log:curve2=exp [all];"
   input_cnt += 1
 else
@@ -97,10 +128,16 @@ else
    [start] acopy [all];"
 end
 
-command += "
+if (options[:compressor])
+  command += "
    [all] acompressor [compressed];
    [compressed] loudnorm=i=#{options[:loudness]}:lra=#{options[:lra]}:tp=#{options[:tp]}\" \\
   -ac 1 -c:a libmp3lame -q:a 4  -ab 128k -ar 48000 #{options[:output]}"
+else
+  command += "
+   [all] loudnorm=i=#{options[:loudness]}:lra=#{options[:lra]}:tp=#{options[:tp]}\" \\
+  -ac 1 -c:a libmp3lame -q:a 4  -ab 128k -ar 48000 #{options[:output]}"
+end
 
 if options[:exec]
   system(command)

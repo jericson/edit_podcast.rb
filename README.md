@@ -35,15 +35,25 @@ command line. If you want to see the command, leave off the `-e` or
 `--exec` option. The audio filters are documented in the
 [FFmpeg Filters Documentation](http://ffmpeg.org/ffmpeg-filters.html).
 
-First, each speaker's channel is normalized for loudness:
+First, we remove "impulsive noise" from each channel. That is to say,
+get rid of any clicks or pops:
 
-    [0] loudnorm=i=-19:lra=6:tp=-1.5 [input_0];
+    [0] adeclick [declicked_0];
+
+Next, we (optionally) normalize each channel for loudness:
+
+    [declicked_0] loudnorm=i=-19:lra=6:tp=-1.5 [input_0];
 
 I got the constants from
 [this article](https://theaudacitytopodcast.com/why-and-how-your-podcast-needs-loudness-normalization-tap307/),
 which also does a great job of explaining the purpose of this step and
-giving reasons for each constant. In the future, I might make these
-command line options, but the defaults seem to be working for now.
+giving reasons for each constant. These constants can be controlled
+with command-line options.
+
+Per-channel loudness normalization is optional because it only matters
+if the channel volumes are substantially different. In at least one
+case, I found it introduced distortion when a track has a long section
+of silence. It's also one of the most time-consuming step.
 
 Now that each individual file has the same loudness, we mix them
 together into a single audio source:
@@ -62,7 +72,7 @@ Next we remove silence longer than a second from the mixed podcast and
 
 Mostly I want to get rid of any silence at the start and end of the
 session. But this also removes silence (defined as less than -50
-decibels[^1]) that might be in the middle of an episode. This ought to
+decibels<sup>1</sup>) that might be in the middle of an episode. This ought to
 clean up awkward pauses where everyone is waiting for someone else to
 talk. So don't be afraid of dead air; we're fixing it in post.
 
@@ -84,20 +94,19 @@ This reduces the dynamic range, which makes it easier to listen and
 control volume. I don't mess with the
 [many options](http://ffmpeg.org/ffmpeg-filters.html#acompressor)
 available since I don't have any skill in this. Anyway, the defaults
-seem pretty good.
+seem pretty good. It's an optional step since the compressor can
+sometimes make people sound robotty.
 
-Finally I run the loudness normalizer again on the entire stream. I
-don't exactly know if it was overkill to run it again since I've
-already run it on on each individual channel earlier. I should
-probably run a blind test to see what makes a difference as this is
-easily the most time-consuming bit of the process.
+Finally I run the loudness normalizer again on the entire stream. 
 
 I pass a few more parameter to FFmpeg:
 
 * `-ac 1` &mdash; Outputs just one audio channel [because there's no reason for stereo podcasts](https://theaudacitytopodcast.com/tap059-should-you-podcast-in-mono-or-stereo/).
 
 * `-c:a libmp3lame` &mdash; Sets the audio codec to
-  [`libmp3lame`](http://lame.sourceforge.net/).
+  [`libmp3lame`](http://lame.sourceforge.net/). FFmpeg is flexible
+  about file formats, but we're locking ourselves to MP3, which is
+  [the current standard for podcasts](https://create.blubrry.com/manual/creating-podcast-media/audio/audio-formats/).
 
 * `-q:a 4` &mdash; Sets the
   [LAME `compression_level`](http://ffmpeg.org/ffmpeg-all.html#libmp3lame-1)
@@ -112,7 +121,7 @@ I pass a few more parameter to FFmpeg:
 
 ---
 
-[^1]: The [decibel scale](https://en.wikipedia.org/wiki/Decibel) is
+1.  The [decibel scale](https://en.wikipedia.org/wiki/Decibel) is
     logarithmic. The human ear is
     [sensitive to 3kHz sounds down to about 0dB](https://www.dspguide.com/ch22/1.htm). So
     we are removing sounds that can't really be heard anyway. It's
